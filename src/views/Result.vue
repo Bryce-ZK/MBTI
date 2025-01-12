@@ -139,10 +139,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
-import * as echarts from 'echarts'
 import { jsPDF } from 'jspdf'
 import { getTypeDescription } from '../data/mbtiDescriptions'
 import { ElMessage } from 'element-plus'
@@ -150,7 +149,6 @@ import html2canvas from 'html2canvas'
 
 const router = useRouter()
 const quizStore = useQuizStore()
-const chartRef = ref<HTMLElement>()
 
 const hasResult = computed(() => quizStore.result !== null)
 const mbtiType = computed(() => quizStore.finalResult || 'UNKNOWN')
@@ -161,50 +159,24 @@ const typeInfo = computed(() => {
   return info;
 });
 
+const dimensionScores = computed(() => {
+  if (!quizStore.result) return null;
+  
+  const scores = quizStore.dimensionScores;
+  if (!scores) return null;
+
+  return {
+    EI: Math.round(scores.EI * 100 / 40), // 转换为百分比
+    SN: Math.round(scores.SN * 100 / 40),
+    TF: Math.round(scores.TF * 100 / 40),
+    JP: Math.round(scores.JP * 100 / 40)
+  };
+});
+
 onMounted(() => {
   if (!hasResult.value) {
     router.push('/')
     return
-  }
-
-  if (chartRef.value && quizStore.result) {
-    const chart = echarts.init(chartRef.value)
-    const scores = quizStore.dimensionScores
-    
-    const option = {
-      radar: {
-        indicator: [
-          { name: 'E-I', max: 40 },
-          { name: 'S-N', max: 40 },
-          { name: 'T-F', max: 40 },
-          { name: 'J-P', max: 40 }
-        ],
-        shape: 'circle',
-      },
-      series: [{
-        type: 'radar',
-        data: [{
-          value: [
-            scores?.EI || 0,
-            scores?.SN || 0,
-            scores?.TF || 0,
-            scores?.JP || 0
-          ],
-          name: mbtiType.value,
-          areaStyle: {
-            color: 'rgba(64, 158, 255, 0.3)'
-          },
-          lineStyle: {
-            color: '#409EFF'
-          },
-          itemStyle: {
-            color: '#409EFF'
-          }
-        }]
-      }]
-    }
-    
-    chart.setOption(option)
   }
 })
 
